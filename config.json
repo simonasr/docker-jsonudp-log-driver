@@ -1,29 +1,31 @@
 {
-  "description": "File log driver",
+  "description": "Json UDP log driver",
   "documentation": "-",
-  "entrypoint": ["/usr/bin/docker-file-log-driver"],
-  "mounts": [
-    {
-        "destination": "/var/log",
-        "type": "bind",
-        "source": "/var/log",
-        "options": ["rbind","rw"]
-    }
-],
+  "entrypoint": ["/usr/bin/docker-jsonudp-log-driver"],
+  "interface": {
+    "types": ["docker.logdriver/1.0"],
+    "socket": "jsonudplog.sock"
+  },
   "network": {
     "type": "host"
-  },
-  "interface": {
-    "types": [
-      "docker.logdriver/1.0"
-    ],
-    "socket": "log.sock"
   },
 	"env": [
 		{
 			"name": "LOG_LEVEL",
 			"description": "Set log level to output for plugin logs",
 			"value": "info",
+			"settable": ["value"]
+    },
+    {
+			"name": "DST_PORT",
+			"description": "UDP Port",
+			"value": "9017",
+			"settable": ["value"]
+    },
+    {
+			"name": "DST_HOST",
+			"description": "Were to send logs",
+			"value": "127.0.0.1",
 			"settable": ["value"]
 		}
 	]

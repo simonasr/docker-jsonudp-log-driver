@@ -1,4 +1,4 @@
-package driver
+package main
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	protoio "github.com/gogo/protobuf/io"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/snowzach/rotatefilehook"
 	"github.com/tonistiigi/fifo"
 )
 
@@ -30,7 +29,7 @@ type logPair struct {
 	info    logger.Info
 	logLine jsonLogLine
 	stream  io.ReadCloser
-	logger  *logrus.Logger
+	dst     string
 }
 
 func NewDriver() *Driver {
@@ -54,19 +53,15 @@ func (d *Driver) StartLogging(file string, logCtx logger.Info) error {
 	}
 
 	tag, err := loggerutils.ParseLogTag(logCtx, loggerutils.DefaultTemplate)
-	if err != nil {
-		return err
-	}
-
 	extra, err := logCtx.ExtraAttributes(nil)
-	if err != nil {
-		return err
-	}
-
 	hostname, err := logCtx.Hostname()
 	if err != nil {
 		return err
 	}
+
+	dstPort := readWithDefault(logCtx.Config, "port", "9017")
+	dstHost := readWithDefault(logCtx.Config, "host", "127.0.0.1")
+	dst := fmt.Sprintf("%s:%s", dstHost, dstPort)
 
 	logLine := jsonLogLine{
 		ContainerId:      logCtx.FullID(),
@@ -80,8 +75,7 @@ func (d *Driver) StartLogging(file string, logCtx logger.Info) error {
 		Host:             hostname,
 	}
 
-	logger := buildLogger(&logCtx)
-	lp := &logPair{true, file, logCtx, logLine, stream, logger}
+	lp := &logPair{true, file, logCtx, logLine, stream, dst}
 
 	d.mu.Lock()
 	d.logs[path.Base(file)] = lp
@@ -147,30 +141,11 @@ func consumeLog(lp *logPair) {
 	}
 }
 
-func buildLogger(logCtx *logger.Info) *logrus.Logger {
-	P := parseInt
-
-	fpath := parseFpath(readWithDefault(logCtx.Config, "fpath", ""), "/var/log/docker/docker_file_log_driver_default.log")
-	max_size := P(readWithDefault(logCtx.Config, "max-size", ""), 10)
-	max_backups := P(readWithDefault(logCtx.Config, "max-backups", ""), 10)
-	max_age := P(readWithDefault(logCtx.Config, "max-age", ""), 100)
-
-	hook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   fpath,
-		MaxSize:    max_size,
-		MaxBackups: max_backups,
-		MaxAge:     max_age,
-		Level:      logrus.DebugLevel,
-		Formatter:  new(logrus.JSONFormatter),
-	})
-
-	if err != nil {
-		// FIXME: ?
-		panic(err)
+func readWithDefault(m map[string]string, key string, def string) string {
+	value, ok := m[key]
+	if ok {
+		return value
 	}
 
-	logger := logrus.New()
-	logger.AddHook(hook)
-
-	return logger
+	return def
 }

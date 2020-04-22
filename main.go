@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/deep-compute/docker-file-log-driver/driver"
-	"github.com/deep-compute/docker-file-log-driver/http"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/sirupsen/logrus"
 )
@@ -30,8 +28,8 @@ func main() {
 	}
 
 	h := sdk.NewHandler(`{"Implements": ["LoggingDriver"]}`)
-	http.Handlers(&h, driver.NewDriver())
-	if err := h.ServeUnix("log", 0); err != nil {
+	Handlers(&h, NewDriver())
+	if err := h.ServeUnix("jsonudplog", 0); err != nil {
 		panic(err)
 	}
 }

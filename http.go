@@ -1,10 +1,9 @@
-package http
+package main
 
 import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/deep-compute/docker-file-log-driver/driver"
 	"github.com/docker/docker/daemon/logger"
 	"github.com/docker/go-plugins-helpers/sdk"
 )
@@ -27,7 +26,7 @@ type response struct {
 	Err string
 }
 
-func Handlers(h *sdk.Handler, d *driver.Driver) {
+func Handlers(h *sdk.Handler, d *Driver) {
 	h.HandleFunc("/LogDriver.StartLogging", func(w http.ResponseWriter, r *http.Request) {
 		var req startLoggingRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
